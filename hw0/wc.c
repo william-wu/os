@@ -31,4 +31,5 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	printf("%d\t%d\t%d\n", nl, nw, nc);
+
 }
