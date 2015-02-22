@@ -22,9 +22,13 @@ int cmd_quit(tok_t arg[]) {
   exit(0);
   return 1;
 }
+int cmd_enter(tok_t arg[]) {
+	// does nothing
+	return 1;
+}
 
 int cmd_help(tok_t arg[]);
-
+int cmd_cd(tok_t arg[]);
 
 /* Command Lookup table */
 typedef int cmd_fun_t (tok_t args[]); /* cmd functions take token array and return int */
@@ -37,19 +41,39 @@ typedef struct fun_desc {
 fun_desc_t cmd_table[] = {
   {cmd_help, "?", "show this help menu"},
   {cmd_quit, "quit", "quit the command shell"},
+  {cmd_enter, "", "does nothing"},
+	{cmd_cd, "cd", "change the current working directory to the directory specified"}
 };
 
 int cmd_help(tok_t arg[]) {
-  int i;
-  for (i=0; i < (sizeof(cmd_table)/sizeof(fun_desc_t)); i++) {
-    printf("%s - %s\n",cmd_table[i].cmd, cmd_table[i].doc);
+  int i, ncmds;
+  fun_desc_t cmd_desc;
+
+	ncmds = sizeof(cmd_table)/sizeof(fun_desc_t);
+	for (i = 0; i < ncmds; i++) {
+    cmd_desc = cmd_table[i];
+		printf("%s - %s\n",cmd_desc.cmd, cmd_desc.doc);
   }
   return 1;
 }
 
+int cmd_cd(tok_t args[]) {
+	tok_t path = args[0];
+	
+	if (path != NULL)
+	{
+		if (chdir(path) < 0)
+			fprintf(stdout, "cd: %s: No such file or directory\n", path);
+	}
+
+	return 1;
+}
+
 int lookup(char cmd[]) {
-  int i;
-  for (i=0; i < (sizeof(cmd_table)/sizeof(fun_desc_t)); i++) {
+  int i, ncmds;
+	
+	ncmds = sizeof(cmd_table) / sizeof(fun_desc_t);
+  for (i=0; i < ncmds; i++) {
     if (cmd && (strcmp(cmd_table[i].cmd, cmd) == 0)) return i;
   }
   return -1;
@@ -59,12 +83,17 @@ void init_shell()
 {
   /* Check if we are running interactively */
   shell_terminal = STDIN_FILENO;
+	printf("shell_terminal = %d\n", shell_terminal);
 
   /** Note that we cannot take control of the terminal if the shell
       is not interactive */
-  shell_is_interactive = isatty(shell_terminal);
+	shell_is_interactive = isatty(shell_terminal);
 
   if(shell_is_interactive){
+		
+		printf("shell pgid=%d\n", getpgrp());
+		printf("shell pid=%d\n", getpid());
+		printf("terminal pgid=%d\n", tcgetpgrp(shell_terminal));
 
     /* force into foreground */
     while(tcgetpgrp (shell_terminal) != (shell_pgid = getpgrp()))
@@ -80,7 +109,9 @@ void init_shell()
     /* Take control of the terminal */
     tcsetpgrp(shell_terminal, shell_pgid);
     tcgetattr(shell_terminal, &shell_tmodes);
-  }
+  } else {
+		printf("shell is not interactive\n");
+	}
   /** YOUR CODE HERE */
 }
 
@@ -104,28 +135,39 @@ process* create_process(char* inputString)
 
 
 int shell (int argc, char *argv[]) {
-  char *s = malloc(INPUT_STRING_SIZE+1);			/* user input string */
+  char dir_buf[1024];
+	char *line;
   tok_t *t;			/* tokens parsed from input */
-  int lineNum = 0;
-  int fundex = -1;
-  pid_t pid = getpid();		/* get current processes PID */
-  pid_t ppid = getppid();	/* get parents PID */
-  pid_t cpid, tcpid, cpgid;
+	int  line_num, fundex;
+	pid_t pid, ppid, cpid, tcpid, cpgid;
+
+	line = malloc(INPUT_STRING_SIZE+1);			/* user input string */
+  line_num = 0;
+  fundex = -1;
+  
+	pid = getpid();		/* get current processes PID */
+  ppid = getppid();	/* get parents PID */
+  cpid, tcpid, cpgid;
 
   init_shell();
 
   printf("%s running as PID %d under %d\n",argv[0],pid,ppid);
 
-  lineNum=0;
-  fprintf(stdout, "%d: ", lineNum);
-  while ((s = freadln(stdin))){
-    t = getToks(s); /* break the line into tokens */
-    fundex = lookup(t[0]); /* Is first token a shell literal */
-    if(fundex >= 0) cmd_table[fundex].fun(&t[1]);
-    else {
-      fprintf(stdout, "This shell only supports built-ins. Replace this to run programs as commands.\n");
+	getcwd(dir_buf, sizeof(dir_buf));
+  fprintf(stdout, "%d (%s): ", line_num, dir_buf);
+  while ((line = freadln(stdin))){
+    t = get_toks(line); /* break the line into tokens */
+    if (t[0] == NULL) {
+			// do nothing
+    } else if((fundex = lookup(t[0])) >= 0) {
+			cmd_table[fundex].fun(&t[1]);
+    } else {
+			fprintf(stdout, "No command '%s' found\n", t[0]);
     }
-    fprintf(stdout, "%d: ", lineNum);
-  }
+		getcwd(dir_buf, sizeof(dir_buf));
+    fprintf(stdout, "%d (%s): ", ++line_num, dir_buf);
+	}
   return 0;
 }
+  	
+  	
