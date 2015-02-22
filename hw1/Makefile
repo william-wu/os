@@ -13,7 +13,12 @@ $(EXECUTABLES): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) $(LDFLAGS) -o $@  
 
 .c.o:
+	echo "$<"
+	echo "$@"
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(EXECUTABLES) $(OBJS)
+
+echo:
+	echo "$(OBJS)"

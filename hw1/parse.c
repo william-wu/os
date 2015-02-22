@@ -12,7 +12,7 @@
 
 #define TOKseparator " \n:"
 
-tok_t *getToks(char *line) {
+tok_t *get_toks(char *line) {
   int i;
   char *c;
 
@@ -28,7 +28,7 @@ tok_t *getToks(char *line) {
   return toks;
 }
 
-void freeToks(tok_t *toks) {
+void free_toks(tok_t *toks) {
   free(toks);
 }
 
