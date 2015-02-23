@@ -22,10 +22,6 @@ int cmd_quit(tok_t arg[]) {
   exit(0);
   return 1;
 }
-int cmd_enter(tok_t arg[]) {
-	// does nothing
-	return 1;
-}
 
 int cmd_help(tok_t arg[]);
 int cmd_cd(tok_t arg[]);
@@ -41,7 +37,6 @@ typedef struct fun_desc {
 fun_desc_t cmd_table[] = {
   {cmd_help, "?", "show this help menu"},
   {cmd_quit, "quit", "quit the command shell"},
-  {cmd_enter, "", "does nothing"},
 	{cmd_cd, "cd", "change the current working directory to the directory specified"}
 };
 
