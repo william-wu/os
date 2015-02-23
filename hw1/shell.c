@@ -138,8 +138,8 @@ int shell (int argc, char *argv[]) {
   char dir_buf[1024];
 	char *line;
   tok_t *t;			/* tokens parsed from input */
-	int  line_num, fundex;
-	pid_t pid, ppid, cpid, tcpid, cpgid;
+	int  line_num, fundex, status;
+	pid_t pid, ppid, cpid, cpgid, tcpid, w;
 
 	line = malloc(INPUT_STRING_SIZE+1);			/* user input string */
   line_num = 0;
@@ -147,7 +147,6 @@ int shell (int argc, char *argv[]) {
   
 	pid = getpid();		/* get current processes PID */
   ppid = getppid();	/* get parents PID */
-  cpid, tcpid, cpgid;
 
   init_shell();
 
@@ -162,8 +161,24 @@ int shell (int argc, char *argv[]) {
     } else if((fundex = lookup(t[0])) >= 0) {
 			cmd_table[fundex].fun(&t[1]);
     } else {
-			fprintf(stdout, "No command '%s' found\n", t[0]);
-    }
+			cpid = fork();
+			if (cpid == 0) { // child process
+				if (execv(t[0], t) < 0) {
+					perror(t[0]);
+					exit(EXIT_FAILURE);
+					return -1;
+				}
+			} else if (cpid > 0) { // parent process
+				w = wait(&status);
+				if (w == -1) {
+					perror("waitpid");
+					exit(EXIT_FAILURE);
+				}
+			} else {
+				perror("fork");
+				exit(EXIT_FAILURE);
+			}
+		}
 		getcwd(dir_buf, sizeof(dir_buf));
     fprintf(stdout, "%d (%s): ", ++line_num, dir_buf);
 	}
